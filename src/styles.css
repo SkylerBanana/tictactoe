@@ -1,1 +1,73 @@
 /* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+body {
+  background: linear-gradient(135deg, #1e293b, #0d1424);
+  min-height: 100vh;
+}
+h1 {
+  margin: 3rem 0;
+  font-size: 3.6rem;
+  color: #fff;
+}
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+
+.game-board {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+  width: 19rem;
+  height: 19rem;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.1rem solid #64748b;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: #1e293b;
+  color: #f8fafc;
+  aspect-ratio: 1;
+  transition: background-color 0.3s ease;
+}
+
+.cell:hover {
+  background-color: #334155;
+}
+
+.game-info {
+  margin-top: 1.25rem;
+  text-align: center;
+
+  p {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #38bdf8;
+    margin-bottom: 2rem;
+    text-shadow: 0 0.06rem 0.13rem rgba(0, 0, 0, 0.6);
+  }
+}
+
+button {
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.31rem;
+  transition: background-color 0.3s ease;
+}
+button:hover {
+  background-color: #2563eb;
+}

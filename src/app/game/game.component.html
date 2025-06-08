@@ -1,0 +1,18 @@
+<div class="game-container">
+  <div class="game-board">
+    @for (row of board(); track $index; let i = $index){ @for(cell of row; track
+    $index; let j = $index){
+    <div class="cell">
+      {{ cell }}
+    </div>
+    } }
+  </div>
+  <button (click)="startWebSocketX()">Choose X</button>
+  <button (click)="startWebSocketY()">Choose Y</button>
+  <!--
+  <app-game-board></app-game-board>
+  <app-game-info></app-game-info>
+  <app-button></app-button>    
+    
+    -->
+</div>
