@@ -13,7 +13,7 @@ import { WebsocketService } from '../websocket.service';
 })
 export class GameComponent {
   constructor(private ws: WebsocketService) {}
-
+  move = signal<Array<Number> | null>(null);
   winner = signal<string | null>(null);
   board = signal<string[][]>(
     Array(3)
@@ -21,18 +21,19 @@ export class GameComponent {
       .map(() => Array(3).fill(null))
   );
 
-  startWebSocketX() {
-    this.ws.connect('ws://localhost:8085/game?letter=X');
-  }
-  startWebSocketY() {
-    this.ws.connect('ws://localhost:8085/game?letter=Y');
+  startWebSocket(letter: string) {
+    this.ws.connect(`ws://localhost:8085/game?letter=${letter}`);
   }
 
   sendMessage() {
-    this.ws.send('Hello from Angular!');
+    this.ws.send(`${this.move()}`);
   }
 
   closeConnection() {
     this.ws.close();
+  }
+  handleClick(i: number, j: number) {
+    this.move.set([i, j]);
+    this.sendMessage();
   }
 }

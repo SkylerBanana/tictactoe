@@ -2,13 +2,14 @@
   <div class="game-board">
     @for (row of board(); track $index; let i = $index){ @for(cell of row; track
     $index; let j = $index){
-    <div class="cell">
+    <div (click)="handleClick(i, j)" class="cell">
       {{ cell }}
     </div>
     } }
   </div>
-  <button (click)="startWebSocketX()">Choose X</button>
-  <button (click)="startWebSocketY()">Choose Y</button>
+  <!--should just be one function -->
+  <button (click)="startWebSocket('X')">Choose X</button>
+  <button (click)="startWebSocket('Y')">Choose Y</button>
   <!--
   <app-game-board></app-game-board>
   <app-game-info></app-game-info>
