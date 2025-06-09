@@ -26,7 +26,7 @@ export class GameComponent {
   }
 
   sendMessage() {
-    this.ws.send(`${this.move()}`);
+    this.ws.send(JSON.stringify(this.move()));
   }
 
   closeConnection() {

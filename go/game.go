@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -30,7 +31,7 @@ func reader(conn *websocket.Conn, letter string) {
 			return
 		}
 
-		log.Println(string(p))
+		handleMessage(p, letter)
 
 		if err := conn.WriteMessage(messageType, p); err != nil {
 			log.Println(err)
@@ -39,7 +40,42 @@ func reader(conn *websocket.Conn, letter string) {
 	}
 }
 
-// am i x or Y
+func handleMessage(msg []byte, letter string) {
+	var move []int
+
+	err := json.Unmarshal(msg, &move)
+	if err != nil {
+		log.Println("Invalid move format:", err)
+		return
+	}
+	log.Println(move)
+	handleMove(letter, move)
+}
+
+func handleMove(letter string, move []int) {
+	log.Println(letter)
+	log.Println(matrix)
+
+	row := move[0]
+	column := move[1]
+	if row < 0 || row > 2 || column < 0 || column > 2 {
+		log.Println("Invalid move")
+		return
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if matrix[row][column] == "" {
+		matrix[row][column] = letter
+	} else {
+		log.Println("Space Occupied o.O")
+	}
+	log.Println(matrix[row][column])
+	// prob gonna need a sync map or do redis PUB/SUB thats a thinker
+	// redis PUB/SUB is more scalable but does scalability matter for this project
+
+}
 
 func startGame() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +92,6 @@ func startGame() http.HandlerFunc {
 			return
 		}
 		log.Println("Client Connected to Websocket")
-		log.Printf(letter)
 
 		reader(ws, letter)
 
