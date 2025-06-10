@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, effect } from '@angular/core';
 import { GameBoardComponent } from './game-board/game-board.component';
 import { GameInfoComponent } from './game-info/game-info.component';
 import { ButtonComponent } from '../components/button/button.component';
@@ -12,7 +12,15 @@ import { WebsocketService } from '../websocket.service';
   styleUrl: './game.component.css',
 })
 export class GameComponent {
-  constructor(private ws: WebsocketService) {}
+  constructor(private ws: WebsocketService) {
+    effect(() => {
+      // Pretty much if server message changes This code runs
+      const message = this.ws.serverMessage();
+      if (message?.matrix) {
+        this.board.set(message.matrix);
+      }
+    });
+  }
   move = signal<Array<Number> | null>(null);
   winner = signal<string | null>(null);
   board = signal<string[][]>(

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 export class WebsocketService {
   constructor() {}
   private socket: WebSocket | null = null;
+  public serverMessage = signal<any>(null);
 
   connect(url: string): void {
     if (this.socket) return;
@@ -17,7 +18,9 @@ export class WebsocketService {
     };
 
     this.socket.onmessage = (event) => {
-      console.log('Message from server:', event.data);
+      const data = JSON.parse(event.data);
+      console.log(data);
+      this.serverMessage.set(data);
     };
 
     this.socket.onerror = (error) => {

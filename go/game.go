@@ -19,6 +19,11 @@ var (
 	mu     sync.Mutex
 )
 
+type gameState struct {
+	Type   string   `json:"type"`
+	Matrix []string `json:"matrix"`
+}
+
 func reader(conn *websocket.Conn, letter string) {
 	defer func() {
 		conn.Close()
@@ -31,7 +36,7 @@ func reader(conn *websocket.Conn, letter string) {
 			return
 		}
 
-		handleMessage(p, letter)
+		handleMessage(p, letter, conn)
 
 		if err := conn.WriteMessage(messageType, p); err != nil {
 			log.Println(err)
@@ -40,24 +45,25 @@ func reader(conn *websocket.Conn, letter string) {
 	}
 }
 
-func handleMessage(msg []byte, letter string) {
+func handleMessage(msg []byte, letter string, conn *websocket.Conn) {
 	var move []int
 
 	err := json.Unmarshal(msg, &move)
 	if err != nil {
-		log.Println("Invalid move format:", err)
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("Invalid move format"))
 		return
 	}
 	log.Println(move)
-	handleMove(letter, move)
+	handleMove(letter, move, conn)
 }
 
-func handleMove(letter string, move []int) {
+func handleMove(letter string, move []int, conn *websocket.Conn) {
 	log.Println(letter)
 	log.Println(matrix)
 
 	row := move[0]
 	column := move[1]
+
 	if row < 0 || row > 2 || column < 0 || column > 2 {
 		log.Println("Invalid move")
 		return
@@ -70,8 +76,29 @@ func handleMove(letter string, move []int) {
 		matrix[row][column] = letter
 	} else {
 		log.Println("Space Occupied o.O")
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("Space Occupied o.O"))
+		return
 	}
-	log.Println(matrix[row][column])
+
+	// have to flatten the matrix so we can send it as json
+	var flatMatrix []string
+	for _, row := range matrix {
+		flatMatrix = append(flatMatrix, row[:]...)
+	}
+
+	var gamestate []gameState
+	gamestate = append(gamestate, gameState{
+		Type:   "Game Update",
+		Matrix: flatMatrix,
+	})
+
+	data, err := json.Marshal(gamestate)
+	if err != nil {
+		log.Println("Error Marshalling to Json")
+	}
+
+	conn.WriteMessage(websocket.TextMessage, data)
+
 	// prob gonna need a sync map or do redis PUB/SUB thats a thinker
 	// redis PUB/SUB is more scalable but does scalability matter for this project
 
