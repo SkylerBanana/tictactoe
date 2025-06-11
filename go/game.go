@@ -98,6 +98,8 @@ func handleMove(letter string, conn *websocket.Conn, store redis.Store, ctx cont
 		log.Println("Error Marshalling to Json")
 	}
 
+	// what if just flatten the array and store it in redis that way the go server dosent have to store the game
+
 	store.Publish(ctx, uuid, data)
 	println("After Publish")
 
@@ -109,7 +111,6 @@ func startGame(store redis.Store) http.HandlerFunc {
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
 		uuid := uuid.NewString()
-		println(uuid)
 
 		letter := r.FormValue("letter")
 		if letter != "X" && letter != "Y" {
@@ -130,12 +131,8 @@ func startGame(store redis.Store) http.HandlerFunc {
 
 }
 
-func createGame() http.HandlerFunc {
+func playGame() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		//basically this function is gonna generate a random UUID for a match and make a redis channel with that UUID
-
-		//Also need to return the UUID back to the client
 
 	}
 }

@@ -17,6 +17,7 @@ type store struct {
 type Store interface {
 	Subscribe(ctx context.Context, channel string, handler func(message string)) error
 	Publish(ctx context.Context, channel string, message []byte) error
+	Que(ctx context.Context, player []byte) error
 }
 
 func NewRedisInstance(redis *redis.Client) Store {
@@ -49,6 +50,15 @@ func (s *store) Publish(ctx context.Context, channel string, message []byte) err
 	}
 
 	return nil
+}
+
+func (s *store) Que(ctx context.Context, player []byte) error {
+	err := s.client.LPush(ctx, "MatchMaking", player).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func InitRedis() *redis.Client {

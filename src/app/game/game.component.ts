@@ -3,11 +3,17 @@ import { GameBoardComponent } from './game-board/game-board.component';
 import { GameInfoComponent } from './game-info/game-info.component';
 import { ButtonComponent } from '../components/button/button.component';
 import { WebsocketService } from '../websocket.service';
+import { LoginComponent } from '../components/login/login.component';
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [GameBoardComponent, GameInfoComponent, ButtonComponent],
+  imports: [
+    GameBoardComponent,
+    GameInfoComponent,
+    ButtonComponent,
+    LoginComponent,
+  ],
   templateUrl: './game.component.html',
   styleUrl: './game.component.css',
 })

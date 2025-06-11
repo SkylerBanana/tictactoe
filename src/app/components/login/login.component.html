@@ -1,0 +1,13 @@
+<form *ngIf="!isLoggedin" #f="ngForm" (ngSubmit)="onSubmit(f)">
+  <label for="username">UserName:</label>
+  <input
+    type="text"
+    value="username"
+    name="username"
+    required
+    minlength="3"
+    maxlength="15"
+    [(ngModel)]="username"
+  />
+  <button type="submit">Login</button>
+</form>

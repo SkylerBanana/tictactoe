@@ -1,4 +1,6 @@
 <div class="game-container">
+  <app-login> </app-login>
+
   <div class="game-board">
     @for (row of board(); track $index; let i = $index){ @for(cell of row; track
     $index; let j = $index){
@@ -7,13 +9,7 @@
     </div>
     } }
   </div>
-  <!--should just be one function -->
+  <!--Scope Changed so gotta redo the websocket -->
   <button (click)="startWebSocket('X')">Choose X</button>
   <button (click)="startWebSocket('Y')">Choose Y</button>
-  <!--
-  <app-game-board></app-game-board>
-  <app-game-info></app-game-info>
-  <app-button></app-button>    
-    
-    -->
 </div>
