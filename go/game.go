@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
+	"tictactoe/go/redis"
+
+	"github.com/google/uuid"
 
 	"github.com/gorilla/websocket"
 )
@@ -21,14 +25,15 @@ var (
 
 type gameState struct {
 	Type   string   `json:"type"`
+	Letter string   `json:"letter"`
 	Matrix []string `json:"matrix"`
 }
 
-func reader(conn *websocket.Conn, letter string) {
+func reader(conn *websocket.Conn, letter string, ctx context.Context, store redis.Store, uuid string) {
 	defer func() {
 		conn.Close()
 	}()
-
+	go subscribeToChannel(ctx, store, uuid, conn)
 	for {
 		messageType, p, err := conn.ReadMessage()
 		if err != nil {
@@ -36,7 +41,9 @@ func reader(conn *websocket.Conn, letter string) {
 			return
 		}
 
-		handleMessage(p, letter, conn)
+		log.Println("bingus")
+
+		handleMove(letter, conn, store, ctx, uuid, p)
 
 		if err := conn.WriteMessage(messageType, p); err != nil {
 			log.Println(err)
@@ -45,7 +52,8 @@ func reader(conn *websocket.Conn, letter string) {
 	}
 }
 
-func handleMessage(msg []byte, letter string, conn *websocket.Conn) {
+func handleMove(letter string, conn *websocket.Conn, store redis.Store, ctx context.Context, uuid string, msg []byte) {
+
 	var move []int
 
 	err := json.Unmarshal(msg, &move)
@@ -53,13 +61,6 @@ func handleMessage(msg []byte, letter string, conn *websocket.Conn) {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("Invalid move format"))
 		return
 	}
-	log.Println(move)
-	handleMove(letter, move, conn)
-}
-
-func handleMove(letter string, move []int, conn *websocket.Conn) {
-	log.Println(letter)
-	log.Println(matrix)
 
 	row := move[0]
 	column := move[1]
@@ -97,16 +98,19 @@ func handleMove(letter string, move []int, conn *websocket.Conn) {
 		log.Println("Error Marshalling to Json")
 	}
 
-	conn.WriteMessage(websocket.TextMessage, data)
-
-	// prob gonna need a sync map or do redis PUB/SUB thats a thinker
-	// redis PUB/SUB is more scalable but does scalability matter for this project
+	store.Publish(ctx, uuid, data)
+	println("After Publish")
 
 }
 
-func startGame() http.HandlerFunc {
+func startGame(store redis.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+		uuid := uuid.NewString()
+		println(uuid)
+
 		letter := r.FormValue("letter")
 		if letter != "X" && letter != "Y" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -120,8 +124,25 @@ func startGame() http.HandlerFunc {
 		}
 		log.Println("Client Connected to Websocket")
 
-		reader(ws, letter)
+		reader(ws, letter, r.Context(), store, uuid)
 
 	}
 
+}
+
+func createGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		//basically this function is gonna generate a random UUID for a match and make a redis channel with that UUID
+
+		//Also need to return the UUID back to the client
+
+	}
+}
+
+func joinGame() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// this function will subscribe to the redis channel based off of the UUID
+
+	}
 }

@@ -1,9 +1,15 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	"tictactoe/go/redis"
+)
 
 func main() {
-	http.HandleFunc("/game", startGame())
+
+	client := redis.InitRedis()
+	store := redis.NewRedisInstance(client)
+	http.HandleFunc("/game", startGame(store))
 
 	http.ListenAndServe(":8085", nil)
 }
