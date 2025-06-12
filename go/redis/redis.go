@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"time"
 
 	"log"
 	"os"
@@ -18,6 +19,8 @@ type Store interface {
 	Subscribe(ctx context.Context, channel string, handler func(message string)) error
 	Publish(ctx context.Context, channel string, message []byte) error
 	Que(ctx context.Context, player []byte) error
+	QuePop(ctx context.Context, timeout time.Duration) ([]string, error)
+	Length(ctx context.Context, key string) (int64, error)
 }
 
 func NewRedisInstance(redis *redis.Client) Store {
@@ -59,6 +62,18 @@ func (s *store) Que(ctx context.Context, player []byte) error {
 	}
 	return nil
 
+}
+
+func (s *store) Length(ctx context.Context, key string) (int64, error) {
+	return s.client.LLen(ctx, key).Result()
+}
+
+func (s *store) QuePop(ctx context.Context, timeout time.Duration) ([]string, error) {
+	result, err := s.client.BRPop(ctx, timeout, "MatchMaking").Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func InitRedis() *redis.Client {

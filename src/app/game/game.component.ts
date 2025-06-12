@@ -24,6 +24,7 @@ export class GameComponent {
       const message = this.ws.serverMessage();
       if (message?.matrix) {
         this.board.set(message.matrix);
+        console.log(this.board);
       }
     });
   }
@@ -35,8 +36,8 @@ export class GameComponent {
       .map(() => Array(3).fill(null))
   );
 
-  startWebSocket(letter: string) {
-    this.ws.connect(`ws://localhost:8085/game?letter=${letter}`);
+  startWebSocket() {
+    this.ws.connect(`ws://localhost:8085/game`);
   }
 
   sendMessage() {

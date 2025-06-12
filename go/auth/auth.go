@@ -13,10 +13,9 @@ import (
 
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,15}$`)
 
-var secret = os.Getenv("JWT_SECRET")
-
 func Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var secret = os.Getenv("JWT_SECRET")
 		if r.Method != http.MethodPost {
 			er := http.StatusMethodNotAllowed
 			http.Error(w, "Invalid method", er)
@@ -24,7 +23,6 @@ func Login() http.HandlerFunc {
 		}
 
 		username := r.FormValue("username")
-		println(username)
 
 		if !usernameRegex.MatchString(username) {
 			er := http.StatusNotAcceptable

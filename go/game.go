@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"tictactoe/go/redis"
 
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v5"
+
+	"tictactoe/go/que"
 
 	"github.com/gorilla/websocket"
 )
@@ -29,11 +32,28 @@ type gameState struct {
 	Matrix []string `json:"matrix"`
 }
 
-func reader(conn *websocket.Conn, letter string, ctx context.Context, store redis.Store, uuid string) {
+type CustomClaims struct {
+	UserName string `json:"UserName"`
+	UserId   string `json:"UserId"`
+	jwt.RegisteredClaims
+}
+
+type QueuedPlayer struct {
+	UserId   string `json:"userId"`
+	UserName string `json:"userName"`
+}
+
+func reader(conn *websocket.Conn, ctx context.Context, store redis.Store, claims *CustomClaims) {
 	defer func() {
 		conn.Close()
+		// in here ill remove the user from que if they disconnect
 	}()
-	go subscribeToChannel(ctx, store, uuid, conn)
+	go subscribeToChannel(ctx, store, claims.UserId, conn)
+	if que.ProcessQue(store, ctx) != nil {
+		//Tbh this could be a completely different message  entirely
+		conn.WriteMessage(websocket.TextMessage, []byte("Not Enough Players In Que"))
+	}
+
 	for {
 		messageType, p, err := conn.ReadMessage()
 		if err != nil {
@@ -41,9 +61,7 @@ func reader(conn *websocket.Conn, letter string, ctx context.Context, store redi
 			return
 		}
 
-		log.Println("bingus")
-
-		handleMove(letter, conn, store, ctx, uuid, p)
+		//handleMove(letter, conn, store, ctx, uuid, p)
 
 		if err := conn.WriteMessage(messageType, p); err != nil {
 			log.Println(err)
@@ -107,14 +125,24 @@ func handleMove(letter string, conn *websocket.Conn, store redis.Store, ctx cont
 
 func startGame(store redis.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+		secret := []byte(os.Getenv("JWT_SECRET"))
+		auth_token, _ := r.Cookie("auth_token")
 
-		uuid := uuid.NewString()
+		claims := &CustomClaims{}
 
-		letter := r.FormValue("letter")
-		if letter != "X" && letter != "Y" {
-			w.WriteHeader(http.StatusBadRequest)
+		_, err := jwt.ParseWithClaims(auth_token.Value, claims, func(token *jwt.Token) (interface{}, error) {
+			return secret, nil
+		}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+		if err != nil {
+			log.Printf("JWT parse error: %v\n", err)
+			http.Error(w, "Invalid Token", http.StatusUnauthorized)
+
+			return
+		}
+
+		if err := quePlayer(store, claims, r.Context()); err != nil {
+			http.Error(w, "Failed to queue player", http.StatusInternalServerError)
 			return
 		}
 
@@ -123,23 +151,31 @@ func startGame(store redis.Store) http.HandlerFunc {
 			log.Println(err)
 			return
 		}
+
 		log.Println("Client Connected to Websocket")
 
-		reader(ws, letter, r.Context(), store, uuid)
+		reader(ws, r.Context(), store, claims)
 
 	}
 
 }
 
-func playGame() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func quePlayer(store redis.Store, claims *CustomClaims, ctx context.Context) error {
 
+	player := QueuedPlayer{
+		UserId:   claims.UserId,
+		UserName: claims.UserName,
 	}
-}
 
-func joinGame() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// this function will subscribe to the redis channel based off of the UUID
-
+	data, err := json.Marshal(player)
+	if err != nil {
+		log.Println("Failed to marshal to JSON:", err)
+		return err
 	}
+
+	err = store.Que(ctx, data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
