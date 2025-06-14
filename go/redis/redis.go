@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
@@ -15,12 +16,19 @@ type store struct {
 	client *redis.Client
 }
 
+type CustomClaims struct {
+	UserName string `json:"UserName"`
+	UserId   string `json:"UserId"`
+	jwt.RegisteredClaims
+}
+
 type Store interface {
 	Subscribe(ctx context.Context, channel string, handler func(message string)) error
 	Publish(ctx context.Context, channel string, message []byte) error
 	Que(ctx context.Context, player []byte) error
 	QuePop(ctx context.Context, timeout time.Duration) ([]string, error)
 	Length(ctx context.Context, key string) (int64, error)
+	Deque(ctx context.Context, element *CustomClaims) error
 }
 
 func NewRedisInstance(redis *redis.Client) Store {
@@ -74,6 +82,15 @@ func (s *store) QuePop(ctx context.Context, timeout time.Duration) ([]string, er
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *store) Deque(ctx context.Context, element *CustomClaims) error {
+	_, err := s.client.LRem(ctx, "MatchMaking", 0, element).Result()
+	if err != nil {
+		println(err)
+		return err
+	}
+	return nil
 }
 
 func InitRedis() *redis.Client {

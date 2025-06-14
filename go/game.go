@@ -11,8 +11,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"tictactoe/go/que"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -43,33 +41,7 @@ type QueuedPlayer struct {
 	UserName string `json:"userName"`
 }
 
-func reader(conn *websocket.Conn, ctx context.Context, store redis.Store, claims *CustomClaims) {
-	defer func() {
-		conn.Close()
-		// in here ill remove the user from que if they disconnect
-	}()
-	go subscribeToChannel(ctx, store, claims.UserId, conn)
-	if que.ProcessQue(store, ctx) != nil {
-		//Tbh this could be a completely different message  entirely
-		conn.WriteMessage(websocket.TextMessage, []byte("Not Enough Players In Que"))
-	}
-
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		//handleMove(letter, conn, store, ctx, uuid, p)
-
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
-	}
-}
-
+/*
 func handleMove(letter string, conn *websocket.Conn, store redis.Store, ctx context.Context, uuid string, msg []byte) {
 
 	var move []int
@@ -123,6 +95,8 @@ func handleMove(letter string, conn *websocket.Conn, store redis.Store, ctx cont
 
 }
 
+*/
+
 func startGame(store redis.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
@@ -138,11 +112,6 @@ func startGame(store redis.Store) http.HandlerFunc {
 			log.Printf("JWT parse error: %v\n", err)
 			http.Error(w, "Invalid Token", http.StatusUnauthorized)
 
-			return
-		}
-
-		if err := quePlayer(store, claims, r.Context()); err != nil {
-			http.Error(w, "Failed to queue player", http.StatusInternalServerError)
 			return
 		}
 
